@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de Memorama</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      flex-direction: column;
+      background-image: url('fondo.jpg');
+      background-size: cover;
+    }
+    #memorama {
+      display: grid;
+      grid-template-columns: repeat(4, 100px);
+      grid-template-rows: repeat(4, 100px);
+      grid-gap: 10px;
+      border: 1px solid #000; /* Borde delgado */
+      padding: 5px; /* Espaciado interno */
+      background-color: transparent; /* Hacer el fondo del memorama transparente */
+    }
+    .card {
+      width: 100px;
+      height: 100px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 24px;
+      cursor: pointer;
+      user-select: none; /* Evitar que el texto sea seleccionable */
+      background-color: #FFC0CB; /* Fondo rosado suave */
+      position: relative;
+    }
+    .card img {
+      display: none; /* Ocultar la imagen por defecto */
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* Ajustar la imagen para cubrir completamente el contenedor */
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    .flipped img {
+      display: block; /* Mostrar la imagen cuando la carta está destapada */
+    }
+    #startButton {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #FFFF99; /* Fondo amarillo suave */
+      padding: 10px 20px;
+    }
+    #timer {
+      margin-top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: violet; /* Texto violeta */
+    }
+    #result {
+      display: none;
+      margin-top: 20vh; /* Ajustar posición vertical */
+      text-align: center; /* Centrar texto */
+    }
+    #happyImage {
+      margin-top: 20vh; /* Ajustar posición vertical */
+      width: 600px; /* Aumentar tamaño de la imagen */
+      height: auto;
+    }
+    #restartButton {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #FFFF99; /* Fondo amarillo suave */
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+  <button id="startButton">Iniciar Juego</button>
+  <div id="timer">Tiempo restante: <span id="countdown">30</span> segundos</div>
+  <div id="memorama" style="display: none;"></div>
+  <div id="result"></div>
+  <button id="restartButton" style="display: none;">Reiniciar</button>
+  <img id="happyImage" src="feliz.jpg" style="display: none;">
+  
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const memorama = document.getElementById('memorama');
+      const startButton = document.getElementById('startButton');
+      const restartButton = document.getElementById('restartButton');
+      const countdownSpan = document.getElementById('countdown');
+      const happyImage = document.getElementById('happyImage');
+      const resultDiv = document.getElementById('result');
+      const symbols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+      let cards = [];
+      let flippedCards = [];
+      let lockBoard = false;
+      let pairsFound = 0;
+      let timerSeconds = 30; // Cambiado a 30 segundos
+      let timerInterval;
+
+      function createBoard() {
+        for (let i = 0; i < cards.length; i++) {
+          const card = document.createElement('div');
+          card.classList.add('card');
+          card.dataset.symbol = cards[i];
+
+          const img = document.createElement('img');
+          img.src = `${cards[i]}.jpg`;
+
+          card.appendChild(img);
+          card.addEventListener('click', flipCard);
+
+          memorama.appendChild(card);
+        }
+      }
+
+      function startGame() {
+        startButton.style.display = 'none';
+        restartButton.style.display = 'none';
+        memorama.style.display = 'grid';
+        resultDiv.style.display = 'none';
+        timerInterval = setInterval(updateTimer, 1000);
+
+        cards = symbols.concat(symbols).sort(() => Math.random() - 0.5);
+        createBoard();
+      }
+
+      function updateTimer() {
+        timerSeconds--;
+        countdownSpan.textContent = timerSeconds;
+        if (timerSeconds === 0) {
+          clearInterval(timerInterval);
+          hideGame();
+        }
+      }
+
+      function hideGame() {
+        memorama.style.display = 'none';
+        happyImage.style.display = 'block';
+        resultDiv.textContent = `¡Juego terminado! Encontraste ${pairsFound} parejas.`;
+        resultDiv.style.display = 'block';
+        restartButton.style.display = 'block';
+      }
+
+      function flipCard() {
+        if (lockBoard || flippedCards.length === 2 || this.classList.contains('flipped')) {
+          return;
+        }
+
+        this.classList.add('flipped');
+        flippedCards.push(this);
+
+        if (flippedCards.length === 2) {
+          checkMatch();
+        }
+      }
+
+      function checkMatch() {
+        const [firstCard, secondCard] = flippedCards;
+
+        if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
+          disableCards();
+        } else {
+          unflipCards();
+        }
+      }
+
+      function disableCards() {
+        flippedCards.forEach(card => {
+          card.removeEventListener('click', flipCard);
+        });
+
+        flippedCards = [];
+        pairsFound++;
+
+        if (pairsFound === symbols.length) {
+          clearInterval(timerInterval);
+          hideGame();
+        }
+      }
+
+      function unflipCards() {
+        lockBoard = true;
+
+        setTimeout(() => {
+          flippedCards.forEach(card => {
+            card.classList.remove('flipped');
+          });
+
+          flippedCards = [];
+          lockBoard = false;
+        }, 1000);
+      }
+
+      startButton.addEventListener('click', startGame);
+      restartButton.addEventListener('click', () => window.location.reload());
+    });
+  </script>
+</body>
+</html>
